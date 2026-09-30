@@ -1,0 +1,30 @@
+# Ignorer toutes les donnees brutes et les donnees traitees
+data/raw/* 
+data/processed/* 
+
+# Exception: conserver le fichier .gitkeep pour maintenir la structure des dossiers
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Ignorer les fichiers temporaires generer par Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignorer environemens virtuels Python
+venv/
+.venv/
+env/
+.env
+
+# Ignorer les fichiers temporaires generes par Jupyter Notebook
+.ipynb_checkpoints/
+
+# Dossiers générés automatiquement par MLflow et Pytest
+# (utilisés à partir des jours 10 à 13)
+mlruns/
+.pytest_cache/
+
+# Fichiers système du système d'exploitation
+# (notamment sur macOS)
+.DS_Store
