@@ -28,3 +28,6 @@ mlruns/
 # Fichiers système du système d'exploitation
 # (notamment sur macOS)
 .DS_Store
+
+models/*.joblib
+models/*.pkl

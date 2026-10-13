@@ -24,7 +24,7 @@ class DataProcessor:
         )
 
         # Fill missing values with 0
-        self.df['TotalCharges'].fillna(0,inplace=True)
+        self.df['TotalCharges'] = self.df['TotalCharges'].fillna(0)
 
         logging.info("Missing values has been handled successfully.")
         return self.df

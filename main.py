@@ -1,40 +1,49 @@
-import pandas as pd
-import os
 import logging
 from src.data.loader import DataLoader
-from src.features.processor import DataProcessor
-import sqlite3
-# Configurer logging pour main.py
-logging.basicConfig(level=logging.INFO, format= '%(asctime)s - %(levelname)s - %(message)s')
+from src.models.trainer import ModelTrainer
 
 def main():
-    # Define file paths
-    csv_file = os.path.join("data","raw","telco_churn_raw.csv")
-    db_file = os.path.join("data","processed","telco.db")
+    # Setup Logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    
+    logger.info("=== STARTING DAY 4 PIPELINE: MODEL TRAINING ===")
 
-    # Initialize DataLoader and retrieve raw data
-    loader = DataLoader(csv_path=csv_file, db_path= db_file)
-    query= "SELECT * FROM customers"
-    df_raw = loader.get_data_via_sql(query)
-    logging.info(f"Raw data shape: {df_raw.shape}")
+    # Initialize modules
+    db_path = 'data/processed/telco.db'
+    csv_path = 'data/raw/telco_churn.csv' 
+    loader = DataLoader(csv_path=csv_path, db_path=db_path)
+    trainer = ModelTrainer(random_state=42)
 
-    # Initialize DataProcessor and run the pipeline 
-    processor = DataProcessor(df_raw)
-    df_clean= processor.process_all()
-    logging.info(f"Processed data shape: {df_clean.shape}")
+    # Retrieve clean data from SQLite
+    logger.info("Reading 'customers_cleaned' data from SQLite...")
+    query = "SELECT * FROM customers_cleaned"
+    df_cleaned = loader.get_data_via_sql(query)
+    
+    if df_cleaned.empty:
+        logger.error("No data found. Ensure you have run the Feature Engineering pipeline (Day 3)!")
+        return
 
-    print("\n---CHECKING DATA TYPES (All columns should be numeric) ---")
-    df_clean.info()
+    # Train/Test Split
+    X_train, X_test, y_train, y_test = trainer.split_data(df=df_cleaned, target_col='Churn', test_size=0.2)
 
-    print("\n" + "="*50 + "\n")
+    # Handle Imbalanced Data using SMOTE (ONLY ON TRAIN SET)
+    X_train_resampled, y_train_resampled = trainer.apply_smote(X_train, y_train)
 
+    # Train the model (Example: Random Forest)
+    rf_params = {
+        'n_estimators': 200,
+        'max_depth': 10
+    }
+    model = trainer.train_model(
+        X_train=X_train_resampled, 
+        y_train=y_train_resampled, 
+        model_type='rf', 
+        params=rf_params
+    )
 
-    # Save the cleaned data to the DATABASE
-    logging.info("Transmission of cleaned data on process...")
-    conn=sqlite3.connect(db_file)
-    df_clean.to_sql(name= 'customers_cleaned', con= conn, if_exists= 'replace', index= False)
-    conn.close()
-    logging.info("Saved")
+    # Save the trained model
+    trainer.save_model(model_dir='models', filename='rf_smote_model.joblib')
 
 if __name__ == "__main__":
     main()
