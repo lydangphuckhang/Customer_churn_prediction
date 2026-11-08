@@ -1,62 +1,33 @@
 import pandas as pd
-import logging 
+import logging
 
-logging.basicConfig(level= logging.INFO, format= '%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-class DataProcessor:
-    def __init__(self, df: pd.DataFrame):
-        """
-        Initialize DataProcessor with the input data.
-        Use.copy() to avoid unintentionally modifying the original data.
-        """
-        self.df= df.copy()
+def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Handles missing values, data types, and drops unnecessary columns."""
+    logger.info("Cleaning data: fixing types and missing values...")
+    df = df.copy()
+    
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+    df['TotalCharges'] = df['TotalCharges'].fillna(0)
+    
+    if 'customerID' in df.columns:
+        df = df.drop(columns=['customerID'])
+        
+    return df
 
-    def handle_missing_values(self) -> pd.DataFrame:
-        """
-        Handle data type issues and fill missing values in colums
-        """
-        logging.info("PRocessing data types and missing values...")
+def encode_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Encodes categorical variables into numeric formats."""
+    logger.info("Encoding categorical features...")
+    df = df.copy()
+    
+    df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
+    df = pd.get_dummies(df, drop_first=True, dtype=int)
+    
+    return df
 
-        # Conversion "TotalCharges" to numeric
-        self.df['TotalCharges'] = pd.to_numeric(
-            self.df['TotalCharges'],
-            errors='coerce'
-        )
-
-        # Fill missing values with 0
-        self.df['TotalCharges'] = self.df['TotalCharges'].fillna(0)
-
-        logging.info("Missing values has been handled successfully.")
-        return self.df
-
-    def drop_unnecessary_columns(self, columns_to_drop:list) -> pd.DataFrame:
-        """
-        Delete columns unnecessary for the prediction
-        """
-        for column in columns_to_drop: 
-            self.df = self.df.drop(columns = [column])
-        return self.df
-
-    def encode_categorical_features(self) -> pd.DataFrame:
-        """
-        Encode categorical variables into numerical format. 
-        """
-        logging.info("Encoding categorical variables...")
-
-        self.df['Churn']= self.df['Churn'].map({'Yes':1, 'No':0})
-        self.df = pd.get_dummies(self.df, drop_first=True, dtype=int)
-
-        return self.df
-
-    def process_all(self) -> pd.DataFrame:
-        """
-        Run the entire data cleaning pipeline sequentially
-        """        
-
-        logging.info("---STARTING DATA PIPELINE---")
-        self.handle_missing_values()
-        self.drop_unnecessary_columns(columns_to_drop=['customerID'])
-        self.encode_categorical_features()
-        logging.info("---DATA PIPELINE COMPLETED---")
-
-        return self.df
+def preprocess_pipeline(df: pd.DataFrame) -> pd.DataFrame:
+    """Executes the full preprocessing pipeline."""
+    df_cleaned = clean_data(df)
+    df_encoded = encode_features(df_cleaned)
+    return df_encoded
